@@ -1,0 +1,24 @@
+# Ambientes virtuais
+venv/
+env/
+.env
+
+# Arquivos de configuração com senhas
+config.ini
+secrets.py
+
+# Arquivos de cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Logs
+*.log
+
+# Arquivos de banco de dados locais
+*.db
+*.sqlite3
+
+# Arquivos específicos que contêm dados sensíveis
+credentials.json
+node_modules
