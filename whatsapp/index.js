@@ -1,3 +1,5 @@
+// whatsapp/index.js
+
 require('dotenv').config();
 const { webcrypto } = require('node:crypto');
 if (!global.crypto) global.crypto = webcrypto;
@@ -8,7 +10,10 @@ const qrcode = require('qrcode-terminal');
 const mime = require('mime-types');
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
 const { Boom } = require('@hapi/boom');
-const agent = require('../agent/agent'); // << CÉREBRO IA
+
+// Importar o novo processador de mensagens (substitui o agent antigo)
+const { processMessage } = require('../agent/messageProcessor');
+const { getUserContext, updateUserContext } = require('../agent/userContextManager');
 
 async function startSock() {
   const { state, saveCreds } = await useMultiFileAuthState('./auth');
@@ -17,6 +22,10 @@ async function startSock() {
     auth: state,
     printQRInTerminal: false,
     markOnlineOnConnect: true,
+    defaultQueryTimeoutMs: 30000,
+    keepAliveIntervalMs: 30000,
+    connectTimeoutMs: 60000,
+    browser: ['AutoWork Finance', 'Chrome', '10.0']
   });
 
   sock.ev.on('creds.update', saveCreds);
@@ -44,12 +53,14 @@ async function startSock() {
 
     const sender = msg.key.remoteJid;
 
+    // Verifica número autorizado (opcional - você pode remover esta verificação para permitir qualquer usuário)
     const numeroAutorizado = '553299642181@s.whatsapp.net'; // <- seu número com DDI e DDD
     if (sender !== numeroAutorizado) {
       console.log(`❌ Número não autorizado: ${sender}`);
       return;
     }
 
+    // Extração do texto da mensagem (mantida do código original)
     let texto = '';
     if (msg.message.conversation) {
       texto = msg.message.conversation;
@@ -68,29 +79,58 @@ async function startSock() {
     await sock.sendPresenceUpdate('composing', sender);
 
     try {
-      const resposta = await agent(texto);
+      // Nova implementação usando o processador de mensagens
+      const userContext = await getUserContext(sender);
+      
+      // Processar a mensagem com o novo sistema
+      const result = await processMessage({
+        text: texto,
+        userId: sender,
+        timestamp: new Date().toISOString()
+      }, userContext, sock);
+      
+      // Registrar a interação no contexto do usuário
+      await updateUserContext(sender, {
+        text: texto,
+        timestamp: new Date().toISOString(),
+        intent: result.intent || 'unknown',
+        success: result.success
+      });
 
-      if (typeof resposta === 'string') {
-        await sock.sendMessage(sender, { text: resposta });
-      } else if (resposta?.tipo === 'texto') {
-        await sock.sendMessage(sender, { text: resposta.conteudo });
-      } else if (resposta?.tipo === 'imagem') {
-        for (let imagem of resposta.imagens) {
-          const buffer = fs.readFileSync(imagem.caminho);
-          const mimeType = mime.lookup(imagem.caminho);
-          await sock.sendMessage(sender, {
-            image: buffer,
-            mimetype: mimeType,
-            caption: imagem.legenda
-          });
+      // Se o processador não enviou resposta diretamente (compatibilidade com código anterior)
+      if (result && !result.responseSent) {
+        if (typeof result.response === 'string') {
+          await sock.sendMessage(sender, { text: result.response });
+        } else if (result.response?.tipo === 'texto') {
+          await sock.sendMessage(sender, { text: result.response.conteudo });
+        } else if (result.response?.tipo === 'imagem') {
+          for (let imagem of result.response.imagens) {
+            const buffer = fs.readFileSync(imagem.caminho);
+            const mimeType = mime.lookup(imagem.caminho);
+            await sock.sendMessage(sender, {
+              image: buffer,
+              mimetype: mimeType,
+              caption: imagem.legenda
+            });
+          }
         }
       }
 
     } catch (error) {
-      console.error('Erro no agente:', error.message);
+      console.error('Erro no processamento:', error);
       await sock.sendMessage(sender, { text: '⚠️ Ocorreu um erro interno ao processar sua mensagem.' });
     }
   });
+
+  return sock;
 }
 
-startSock();
+// Exportar a função para poder ser usada em outros lugares
+module.exports = {
+  startSock
+};
+
+// Iniciar o socket se este arquivo for executado diretamente
+if (require.main === module) {
+  startSock();
+}

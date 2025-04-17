@@ -17,8 +17,9 @@
     "fs-extra": "^11.3.0",
     "mime-types": "^3.0.1",
     "moment": "^2.30.1",
+    "moment-timezone": "^0.5.48",
     "mysql2": "^3.14.0",
-    "openai": "^4.91.0",
+    "openai": "^3.3.0",
     "qrcode-terminal": "^0.12.0"
   }
 }
