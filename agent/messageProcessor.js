@@ -384,7 +384,82 @@ async function generateFinancialTip(category) {
   return "Considere comparar preços antes de fazer grandes compras nesta categoria.";
 }
 
+/**
+ * Formata uma data para exibição
+ */
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  
+  return `${day}/${month}/${year}`;
+}
+
+/**
+ * Gera uma dica financeira baseada na categoria
+ */
+async function generateFinancialTip(category) {
+  // Mapeamento de dicas por categoria
+  const tipsByCategory = {
+    'Alimentação': [
+      'Fazer uma lista de compras antes de ir ao supermercado pode reduzir gastos impulsivos em até 20%.',
+      'Cozinhar em casa em vez de pedir delivery pode economizar até 70% nos gastos com alimentação.',
+      'Considere comprar itens não perecíveis em quantidade quando estiverem em promoção.'
+    ],
+    'Transporte': [
+      'Comparar preços de combustível em diferentes postos pode gerar economia significativa ao longo do mês.',
+      'Manter a manutenção do carro em dia evita gastos maiores com reparos no futuro.',
+      'Considere alternativas como transporte público ou caronas para trajetos regulares.'
+    ],
+    'Moradia': [
+      'Investir em lâmpadas LED pode reduzir sua conta de luz em até 80% comparado às incandescentes.',
+      'Verificar vazamentos e reparar rapidamente pode evitar aumento na conta de água.',
+      'Negociar o aluguel na renovação do contrato pode trazer economias significativas.'
+    ],
+    'Saúde': [
+      'Medicamentos genéricos têm a mesma eficácia e podem custar até 60% menos que os de marca.',
+      'Planos de saúde empresariais ou associativos costumam ter mensalidades mais acessíveis.',
+      'Check-ups preventivos reduzem gastos com tratamentos mais caros no futuro.'
+    ],
+    'Educação': [
+      'Muitos cursos online gratuitos ou de baixo custo têm conteúdo equiparável aos presenciais.',
+      'Bibliotecas públicas e plataformas de e-books por assinatura são alternativas econômicas para leitores ávidos.',
+      'Grupos de estudo compartilhados reduzem custos com materiais e aumentam o aprendizado.'
+    ],
+    'Lazer': [
+      'Aproveite programas gratuitos como parques, exposições e eventos culturais na sua cidade.',
+      'Serviços de streaming compartilhados entre família reduzem o custo individual.',
+      'Planejar viagens com antecedência pode reduzir custos em até 40%.'
+    ],
+    'Vestuário': [
+      'Investir em peças de qualidade que duram mais tempo é mais econômico a longo prazo.',
+      'Brechós e outlets oferecem opções de qualidade por frações do preço original.',
+      'Criar um guarda-roupa cápsula reduz compras por impulso e maximiza combinações.'
+    ]
+  };
+  
+  // Dicas genéricas para categorias sem dicas específicas
+  const genericTips = [
+    'Registrar todos os gastos te ajuda a identificar padrões e oportunidades de economia.',
+    'Estabeleça um orçamento mensal para cada categoria de despesa.',
+    'Separe uma parte da sua renda para emergências e imprevistos.',
+    'A regra 50/30/20 sugere usar 50% da renda para necessidades, 30% para desejos e 20% para poupança.',
+    'Revisar assinaturas e serviços recorrentes periodicamente pode identificar gastos desnecessários.'
+  ];
+  
+  // Retornar uma dica aleatória da categoria ou uma genérica
+  const categoryTips = tipsByCategory[category] || [];
+  const allTips = [...categoryTips, ...genericTips];
+  
+  if (allTips.length === 0) return null;
+  
+  const randomIndex = Math.floor(Math.random() * allTips.length);
+  return allTips[randomIndex];
+}
+
 module.exports = {
   processMessage,
-  identifyMessageIntent
+  formatDate,
+  generateFinancialTip
 };
